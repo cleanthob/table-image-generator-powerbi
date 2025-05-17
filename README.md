@@ -1,4 +1,4 @@
-# 🖼️ Gerador de arquivo Excel com imagens em base64 para usar no Power BI
+# 🖼️ Gerador de arquivo Excel com imagens em Base64 para usar no Power BI
 
 ## 📖 Índice
 
