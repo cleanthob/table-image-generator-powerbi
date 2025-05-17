@@ -2,12 +2,12 @@ import os
 import base64
 import pandas as pd
 import ttkbootstrap as ttk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, Text, Scrollbar, HORIZONTAL, BOTTOM, X
 from PIL import Image
 import io
 
 
-def convert_img_to_b64_redimensionada(img_path, max_size=(200, 200)):
+def convert_img_to_b64_resized(img_path, max_size=(200, 200)):
     ext = os.path.splitext(img_path)[-1].lower()
     if ext in [".jpg", ".jpeg"]:
         mime_type = "image/jpeg"
@@ -24,24 +24,24 @@ def convert_img_to_b64_redimensionada(img_path, max_size=(200, 200)):
     return f"data:{mime_type};base64,{base64_string}"
 
 
-def selecionar_pasta():
-    pasta = filedialog.askdirectory(title="Selecione a pasta com imagens")
-    if pasta:
-        pasta_var.set(pasta)
-        label_status.config(text=f"Pasta selecionada: {pasta}", foreground="green")
+def select_folder():
+    folder = filedialog.askdirectory(title="Selecione a pasta com imagens")
+    if folder:
+        folder_var.set(folder)
+        update_status(f"Pasta selecionada: {folder}", "green")
 
 
-def exportar_excel():
-    pasta = pasta_var.get()
-    if not pasta:
+def export_to_excel():
+    folder = folder_var.get()
+    if not folder:
         messagebox.showerror("Erro", "Nenhuma pasta foi selecionada.")
         return
     data = []
-    for img in os.listdir(pasta):
-        path_img = os.path.join(pasta, img)
+    for img in os.listdir(folder):
+        path_img = os.path.join(folder, img)
         if os.path.isfile(path_img) and img.lower().endswith((".png", ".jpg", ".jpeg")):
             img_name = os.path.splitext(img)[0]
-            img_b64 = convert_img_to_b64_redimensionada(path_img)
+            img_b64 = convert_img_to_b64_resized(path_img)
             data.append({"name": img_name, "b64": img_b64})
     if not data:
         messagebox.showerror(
@@ -49,23 +49,30 @@ def exportar_excel():
         )
         return
     df = pd.DataFrame(data)
-    caminho_salvar = filedialog.asksaveasfilename(
+    save_path = filedialog.asksaveasfilename(
         defaultextension=".xlsx",
         filetypes=[("Arquivo Excel", "*.xlsx")],
         title="Salvar como",
     )
-    if caminho_salvar:
-        df.to_excel(caminho_salvar, index=False)
-        messagebox.showinfo("Sucesso", f"Arquivo salvo com sucesso:\n{caminho_salvar}")
+    if save_path:
+        df.to_excel(save_path, index=False)
+        messagebox.showinfo("Sucesso", f"Arquivo salvo com sucesso:\n{save_path}")
     else:
         messagebox.showwarning("Cancelado", "Operação de salvamento cancelada.")
 
 
-width = 600
+def update_status(text, color):
+    status_text.config(state="normal")
+    status_text.delete("1.0", "end")
+    status_text.insert("end", text)
+    status_text.config(state="disabled", foreground=color)
+
+
+width = 800
 height = 280
 
 app = ttk.Window(
-    title="Conversor de imagens para Base64", themename="morph", size=(width, height)
+    title="Conversor de imagens para Base64", themename="lumen", size=(width, height)
 )
 app.resizable(True, True)
 app.update_idletasks()
@@ -74,27 +81,50 @@ x = (app.winfo_screenwidth() // 2) - (width // 2)
 y = (app.winfo_screenheight() // 2) - (height // 2)
 app.geometry(f"{width}x{height}+{x}+{y}")
 
-pasta_var = ttk.StringVar()
+folder_var = ttk.StringVar()
 
 frame = ttk.Frame(app)
-frame.pack(padx=20, pady=10, fill="x")
+frame.pack(padx=20, pady=20, fill="x", anchor="center")
 
-entry_pasta = ttk.Entry(frame, textvariable=pasta_var)
-entry_pasta.pack(side="left", fill="x", expand=True)
+entry_folder = ttk.Entry(frame, textvariable=folder_var)
+entry_folder.pack(side="left", fill="x", expand=True)
 
-btn_selecionar = ttk.Button(
-    frame, text="Selecionar Pasta", command=selecionar_pasta, bootstyle="primary"
+btn_select = ttk.Button(
+    frame,
+    text="Selecionar Pasta",
+    command=select_folder,
+    bootstyle="primary",
+    width=15,
 )
-btn_selecionar.pack(side="left", padx=10)
+btn_select.pack(side="left", padx=(10, 0))
 
-btn_exportar = ttk.Button(
-    app, text="Exportar para Excel", command=exportar_excel, bootstyle="success"
+btn_export = ttk.Button(
+    app,
+    text="Exportar para Excel",
+    command=export_to_excel,
+    bootstyle="success",
+    width=20,
 )
-btn_exportar.pack(pady=10, padx=20, fill="x")
+btn_export.pack(pady=10)
 
-label_status = ttk.Label(
-    app, text="Nenhuma pasta selecionada", font=("Segoe UI", 10), foreground="red"
+
+status_frame = ttk.Frame(app)
+status_frame.pack(padx=20, pady=10, fill="x")
+
+status_text = Text(
+    status_frame,
+    height=1,
+    wrap="none",
+    font=("Segoe UI", 10),
+    foreground="red",
+    state="disabled",
 )
-label_status.pack(padx=20, pady=10, fill="x")
+status_text.pack(side="top", fill="x", expand=True)
+
+scroll_x = Scrollbar(status_frame, orient=HORIZONTAL, command=status_text.xview)
+scroll_x.pack(side=BOTTOM, fill=X)
+status_text.config(xscrollcommand=scroll_x.set)
+
+update_status("Nenhuma pasta selecionada", "red")
 
 app.mainloop()
